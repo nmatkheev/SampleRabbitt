@@ -4,23 +4,38 @@ from urllib import parse
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 
+
 class HttpHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         length = int(self.headers['Content-Length'])
         post_data = parse.parse_qs(self.rfile.read(length).decode('utf-8'))
 
         if 'frontend/checkin' in self.path:
-            for value in post_data.items():
+            for key, value in post_data.items():
                 global frontbase
-                frontbase[len(frontbase)] = value[1][0]
+                for x, y in frontbase.items():
+                    if y == value[0]:
+                        print("This node is already checked-in")
+                        self.send_response(200)
+                        self.end_headers()
+                        return
+
+                frontbase[len(frontbase)] = value[0]
                 print('Frontend base: ', frontbase)
 
                 self.send_response(200)
                 self.end_headers()
                 return
         if 'backend/checkin' in self.path:
-            for value in post_data.items():
+            for key, value in post_data.items():
                 global backbase
+                for x, y in backbase.items():
+                    if y == value[0]:
+                        print("This node is already checked-in")
+                        self.send_response(200)
+                        self.end_headers()
+                        return
+
                 backbase[len(backbase)] = value[1][0]
                 print('Backend base: ', backbase)
 

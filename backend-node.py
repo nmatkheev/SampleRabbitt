@@ -53,10 +53,28 @@ class HttpProcessor(BaseHTTPRequestHandler):
 
 # -------------------------------------------------------------------------------------------
 
+
+def is_exists(logname):
+    import os
+    try:
+        os.stat(logname)
+        return True
+    except FileNotFoundError:
+        return False
+
+
 current_node_ip = return_ip()
 
-logpath = r'backend - {0}.log'.format(current_node_ip)
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', filename=logpath, level=logging.INFO)
+num = 0
+while True:
+    if is_exists('backend_{0}-launch{1}.log'.format(current_node_ip, num)):
+        num += 1
+        continue
+    else:
+        break
+
+logpath = 'backend_{0}-launch{1}.log'.format(current_node_ip, num)
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', filename=logpath, level=logging.WARNING)
 
 args = init_argparse()
 

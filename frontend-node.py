@@ -73,11 +73,14 @@ class HttpHandler(BaseHTTPRequestHandler):
 
 # ----------------------------------------------------------------------
 
-def check_logpath(logname):
+
+def is_exists(logname):
     import os
-
-
-
+    try:
+        os.stat(logname)
+        return True
+    except FileNotFoundError:
+        return False
 
 
 args = init_argparse()
@@ -86,7 +89,15 @@ discoveryip = args.discovery
 current_node_ip = return_ip()   # ---> you should get it via docker?
 ip_checkin(current_node_ip, discoveryip)
 
-logpath = 'frontend - {0}.log'.format(current_node_ip)
+num = 0
+while True:
+    if is_exists('frontend_{0}-launch{1}.log'.format(current_node_ip, num)):
+        num += 1
+        continue
+    else:
+        break
+
+logpath = 'frontend_{0}-launch{1}.log'.format(current_node_ip, num)
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', filename=logpath, level=logging.WARNING)
 
 serv = HTTPServer(('0.0.0.0', 9000), HttpHandler)

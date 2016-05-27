@@ -17,12 +17,26 @@ def init_argparse():
     return args
 
 
-def ip_checkin(node_ip):
+def return_ip():
+    import re, subprocess
+
+    # ip = 'ip addr show eth0'
+    ip = 'ip addr show lo'
+    egrep = r'egrep (inet\W){1}'
+
+    grep = subprocess.Popen(egrep.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    addr = subprocess.Popen(ip.split(), stdout=grep.stdin)
+    output = grep.communicate()[0]
+    x = re.compile(b'(\d+).(\d+).(\d+).(\d+)')
+    res = x.search(output).group(0).decode()
+    return res
+
+
+def ip_checkin(node_ip, discovery):
     data = {1: node_ip}
     ok = False
     while not ok:
         try:
-            global discovery
             req = requests.post('http://'+discovery+':8000/frontend/checkin', data=data)
             ok = True
         except requests.RequestException:
@@ -59,15 +73,21 @@ class HttpHandler(BaseHTTPRequestHandler):
 
 # ----------------------------------------------------------------------
 
-current_node_ip = '127.0.0.1'  # ---> you should get it via docker?
+def check_logpath(logname):
+    import os
+
+
+
+
 
 args = init_argparse()
-discovery = args.discovery
+discoveryip = args.discovery
+
+current_node_ip = return_ip()   # ---> you should get it via docker?
+ip_checkin(current_node_ip, discoveryip)
 
 logpath = 'frontend - {0}.log'.format(current_node_ip)
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', filename=logpath, level=logging.WARNING)
-
-ip_checkin(current_node_ip)
 
 serv = HTTPServer(('0.0.0.0', 9000), HttpHandler)
 serv.serve_forever()

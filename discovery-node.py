@@ -36,7 +36,7 @@ class HttpHandler(BaseHTTPRequestHandler):
                         self.end_headers()
                         return
 
-                backbase[len(backbase)] = value[1][0]
+                backbase[len(backbase)] = value[0]
                 print('Backend base: ', backbase)
 
                 self.send_response(200)

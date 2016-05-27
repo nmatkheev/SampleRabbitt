@@ -1,6 +1,5 @@
 import requests
 
-
 discovery = 'http://127.0.0.1:8000'  # ---> argument 0
 
 front_nodes = requests.get(discovery+'/frontend').json()

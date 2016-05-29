@@ -12,10 +12,15 @@ import argparse
 
 import time
 
-network = '172.17.0.'
-# network = '127.0.0.'
-logroot = '/mnt/dat/'
-# logroot = './'
+DEBUG = True
+
+# ----------------------------------------------------------------------------------
+if DEBUG:
+    network = '127.0.0.'
+    logroot = './'
+else:
+    network = '172.17.0.'
+    logroot = '/mnt/dat/'
 
 
 def init_argparse():
@@ -28,8 +33,11 @@ def init_argparse():
 def return_ip():
     import re, subprocess
 
-    # ip = 'ip addr show eth0'
-    ip = 'ip addr show lo'
+    if DEBUG:
+        ip = 'ip addr show lo'
+    else:
+        ip = 'ip addr show eth0'
+
     egrep = r'egrep (inet\W){1}'
 
     grep = subprocess.Popen(egrep.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -70,7 +78,7 @@ class HttpHandler(BaseHTTPRequestHandler):
         length = int(self.headers['Content-Length'])
         post_data = parse.parse_qs(self.rfile.read(length).decode('utf-8'))
 
-        logging.info('Incoming POST from - {0}'.format(self.client_address))
+        logging.warning('Incoming POST from - {0}'.format(self.client_address))
 
         for key, value in post_data.items():
             try:

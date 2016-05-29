@@ -2,6 +2,8 @@
 
 from urllib import parse
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from socketserver import ThreadingMixIn
+
 import json
 
 
@@ -55,21 +57,31 @@ class HttpHandler(BaseHTTPRequestHandler):
             global frontbase
             self.wfile.write(bytes(json.dumps(frontbase), encoding='utf-8'))
             return
-
-        if 'backend' in self.path:
+        elif 'backend' in self.path:
             self.send_response(200)
             self.send_header('Content-type','text/html')
             self.end_headers()
             global backbase
             self.wfile.write(bytes(json.dumps(backbase), encoding='utf-8'))
             return
+        elif 'find' in self.path:
+            self.send_response(200)
+            self.end_headers()
+        else:
+            self.send_response(404)
+            self.end_headers()
 
 
-url = '0.0.0.0'
-port = 8000
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    """Handle requests in a separate thread."""
+
+
 frontbase = {}
 backbase = {}
 
-serv = HTTPServer((url, port), HttpHandler)
-serv.serve_forever()
+server = ThreadedHTTPServer(('0.0.0.0', 8000), HttpHandler)
+server.serve_forever()
+
+# serv = HTTPServer((url, port), HttpHandler)
+# serv.serve_forever()
 

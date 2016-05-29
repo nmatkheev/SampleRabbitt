@@ -1,12 +1,20 @@
 #!/usr/bin/python3
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from socketserver import ThreadingMixIn
+
 import requests
 
 import logging
 import argparse
 
 import time
+
+
+network = '172.17.0.'
+# network = '127.0.0.'
+logroot = '/mnt/dat/'
+# logroot = './'
 
 
 def init_argparse():
@@ -31,6 +39,18 @@ def return_ip():
     return res
 
 
+def find_discovery():
+    number = 2
+    while True:
+        ip = network + '{0}'.format(number)
+        try:
+            r = requests.get('http://'+ip+':8000/find')
+            if r.status_code == 200:
+                return ip
+        except requests.ConnectionError:
+            continue
+
+
 def ip_checkin(node_ip, discovery):
     data = {1: node_ip}
     ok = False
@@ -44,12 +64,16 @@ def ip_checkin(node_ip, discovery):
     return
 
 
-class HttpProcessor(BaseHTTPRequestHandler):
+class HttpHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200,'OK')
         self.send_header('content-type','text/html')
         self.end_headers()
         logging.warning('GET from {0}'.format(self.client_address))
+
+
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    """Handle requests in a separate thread."""
 
 # -------------------------------------------------------------------------------------------
 
@@ -67,19 +91,19 @@ current_node_ip = return_ip()
 
 num = 0
 while True:
-    if is_exists('backend_{0}-launch{1}.log'.format(current_node_ip, num)):
+    if is_exists(logroot+'backend_{0}-launch{1}.log'.format(current_node_ip, num)):
         num += 1
         continue
     else:
         break
 
-logpath = 'backend_{0}-launch{1}.log'.format(current_node_ip, num)
+logpath = logroot+'backend_{0}-launch{1}.log'.format(current_node_ip, num)
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', filename=logpath, level=logging.WARNING)
 
-args = init_argparse()
-
-discoveryip = args.discovery
+discoveryip = find_discovery()
 ip_checkin(current_node_ip, discoveryip)
 
-serv = HTTPServer(('0.0.0.0', 10000), HttpProcessor)
-serv.serve_forever()
+server = ThreadedHTTPServer(('0.0.0.0', 10000), HttpHandler)
+server.serve_forever()
+# serv = HTTPServer(('0.0.0.0', 10000), HttpHandler)
+# serv.serve_forever()

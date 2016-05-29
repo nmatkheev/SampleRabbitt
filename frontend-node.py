@@ -1,13 +1,21 @@
 #!/usr/bin/python3
 
 from urllib import parse
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+from socketserver import ThreadingMixIn
+
 import requests
 
 import logging
 import argparse
 
 import time
+
+network = '172.17.0.'
+# network = '127.0.0.'
+logroot = '/mnt/dat/'
+# logroot = './'
 
 
 def init_argparse():
@@ -30,6 +38,18 @@ def return_ip():
     x = re.compile(b'(\d+).(\d+).(\d+).(\d+)')
     res = x.search(output).group(0).decode()
     return res
+
+
+def find_discovery():
+    number = 2
+    while True:
+        ip = network + '{0}'.format(number)
+        try:
+            r = requests.get('http://'+ip+':8000/find')
+            if r.status_code == 200:
+                return ip
+        except requests.ConnectionError:
+            continue
 
 
 def ip_checkin(node_ip, discovery):
@@ -71,6 +91,11 @@ class HttpHandler(BaseHTTPRequestHandler):
         self.send_header('content-type', 'text/html')
         self.end_headers()
 
+
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    """Handle requests in a separate thread."""
+
+
 # ----------------------------------------------------------------------
 
 
@@ -83,22 +108,24 @@ def is_exists(logname):
         return False
 
 
-args = init_argparse()
-discoveryip = args.discovery
+discoveryip = find_discovery()
 
-current_node_ip = return_ip()   # ---> you should get it via docker?
+current_node_ip = return_ip()
 ip_checkin(current_node_ip, discoveryip)
 
 num = 0
 while True:
-    if is_exists('frontend_{0}-launch{1}.log'.format(current_node_ip, num)):
+    if is_exists(logroot+'frontend_{0}-launch{1}.log'.format(current_node_ip, num)):
         num += 1
         continue
     else:
         break
 
-logpath = 'frontend_{0}-launch{1}.log'.format(current_node_ip, num)
+logpath = logroot+'frontend_{0}-launch{1}.log'.format(current_node_ip, num)
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', filename=logpath, level=logging.WARNING)
 
-serv = HTTPServer(('0.0.0.0', 9000), HttpHandler)
-serv.serve_forever()
+
+server = ThreadedHTTPServer(('0.0.0.0', 9000), HttpHandler)
+server.serve_forever()
+# serv = HTTPServer(('0.0.0.0', 9000), HttpHandler)
+# serv.serve_forever()

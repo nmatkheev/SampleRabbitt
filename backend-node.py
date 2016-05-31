@@ -10,17 +10,16 @@ import argparse
 
 import time
 
-DEBUG = True
-
-# ----------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------
+DEBUG = False
 
 if DEBUG:
     network = '127.0.0.'
-    logroot = './'
+    logroot = './Logs/'
 else:
     network = '172.17.0.'
     logroot = '/mnt/dat/'
-
+# ----------------------------------------------------------------------------------------
 
 def init_argparse():
     parser = argparse.ArgumentParser('Backend server node')
@@ -51,12 +50,14 @@ def find_discovery():
     number = 2
     while True:
         ip = network + '{0}'.format(number)
+        number += 1
         try:
             r = requests.get('http://'+ip+':8000/find')
             if r.status_code == 200:
                 return ip
         except requests.ConnectionError:
             continue
+    logging.warning("Backend -- found discovery")
 
 
 def ip_checkin(node_ip, discovery):

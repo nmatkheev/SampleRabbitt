@@ -49,10 +49,13 @@ def return_ip():
 
 
 def find_discovery():
+    limit = 20
     number = 2
     while True:
         ip = network + '{0}'.format(number)
         number += 1
+        if number == limit:  # bugfix
+            number = 2
         try:
             r = requests.get('http://'+ip+':8000/find')
             if r.status_code == 200:
@@ -80,16 +83,16 @@ class HttpHandler(BaseHTTPRequestHandler):
         length = int(self.headers['Content-Length'])
         post_data = parse.parse_qs(self.rfile.read(length).decode('utf-8'))
 
-        logging.warning('Incoming POST from - {0}'.format(self.client_address))
+        logging.warning('Incoming POST {0}'.format(self.client_address))
 
         for key, value in post_data.items():
             try:
                 req = requests.get('http://'+value[0]+':10000')
-                logging.warning('Success GET - url: {0} - Elapsed: {1}, Status_code: {2}'.format(
+                logging.warning('Success GET ({0})   Elapsed: {1}   Status_code: {2}'.format(
                     'http://'+value[0]+':10000', req.elapsed, req.status_code
                 ))
             except requests.ConnectionError:
-                logging.critical('Failed GET - url: {0}'.format(
+                logging.critical('Failed GET ({0})'.format(
                     'http://'+value[0]+':10000'
                 ))
 
@@ -132,7 +135,7 @@ while True:
         break
 
 logpath = logroot+'frontend_{0}-launch{1}.log'.format(current_node_ip, num)
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', filename=logpath, level=logging.WARNING)
+logging.basicConfig(format='%(asctime)s - %(message)s', filename=logpath, level=logging.WARNING)
 
 
 server = ThreadedHTTPServer(('0.0.0.0', 9000), HttpHandler)

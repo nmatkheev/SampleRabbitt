@@ -48,10 +48,14 @@ def return_ip():
 
 def find_discovery():
     number = 2
+    limit = 20 # - bugfix
     while True:
         ip = network + '{0}'.format(number)
         number += 1
+        if number == limit:
+            number = 2
         try:
+            logging.warning('Entered into discovery loop - IP: %s', ip)
             r = requests.get('http://'+ip+':8000/find')
             if r.status_code == 200:
                 return ip
@@ -68,8 +72,8 @@ def ip_checkin(node_ip, discovery):
             req = requests.post('http://'+discovery+':8000/backend/checkin', data=data)
             ok = True
         except requests.RequestException:
-            logging.critical('Unable to reach discovery node - auto-reconnect after 10 sec.')
-            time.sleep(10)
+            logging.critical('Unable to reach discovery node - auto-reconnect after 3 sec.')
+            time.sleep(3)
     return
 
 

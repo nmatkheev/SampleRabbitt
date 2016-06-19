@@ -1,10 +1,9 @@
-#!/usr/bin/python3
-
 import requests
+import grequests
 import logging
 import time
 
-# ----------------------------------------------------------------------------------------
+
 DEBUG = False
 
 if DEBUG:
@@ -13,7 +12,10 @@ if DEBUG:
 else:
     network = '172.17.0.'
     logroot = '/mnt/dat/'
-# ----------------------------------------------------------------------------------------
+
+
+def exception_handler(request, exception):
+    logging.warning("Request: %s", exception)
 
 
 def return_ip():
@@ -62,14 +64,10 @@ def is_exists(logname):
     except FileNotFoundError:
         return False
 
-logpath = logroot+'client.log'
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', filename=logpath, level=logging.WARNING)
 
-
-# time.sleep(3)
+# ----------------------------------------------------------------------------------------
+# 1 - retrieve own ip and then - setup logging
 current_node_ip = return_ip()
-discoveryip = find_discovery()
-
 num = 0
 while True:
     if is_exists(logroot+'client_{0}-launch{1}.log'.format(current_node_ip, num)):
@@ -77,33 +75,50 @@ while True:
         continue
     else:
         break
-
-# logpath = logroot+'client_{0}-launch{1}.log'.format(current_node_ip, num)
+logpath = logroot+'client_{0}-launch{1}.log'.format(current_node_ip, num)
 # logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', filename=logpath, level=logging.WARNING)
-# logging.debug("found discovery - %(ip)s", ip=discoveryip)
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', filename=logpath, level=logging.DEBUG)
+# ----------------------------------------------------------------------------------------
+# 2 - find discovery's ip
+
+discoveryip = find_discovery()
+logging.debug("found discovery - %s", discoveryip)
 
 
 def query_discovery():
     while True:
         try:
-            logging.warning("Entered into query_discovery loop")
-            front_nodes = requests.get('http://' + discoveryip + ':8000/frontend').json()
-            back_nodes = requests.get('http://' + discoveryip + ':8000/backend').json()
-            return front_nodes, back_nodes
+            # logging.warning("Entered into query_discovery loop")
+            _front_nodes = requests.get('http://' + discoveryip + ':8000/frontend').json()
+            _back_nodes = requests.get('http://' + discoveryip + ':8000/backend').json()
+
+            if len(_back_nodes) < 2 or len(_front_nodes) < 1:
+                continue
+
+            return _front_nodes, _back_nodes
         except requests.ConnectionError:
             time.sleep(2)
             continue
 
 
-# for x in range(0,10):
 while True:
-    time.sleep(2)
+# for x in range(0, 2):
+    def elapsed(r, *args, **kwargs):
+        logging.warning("Elapsed: %s, Status: %s, URL: %s", r.elapsed, r.status_code, r.url)
+
     front_nodes, back_nodes = query_discovery()
     logging.warning('Got front_nodes = %s, back_nodes = %s', front_nodes, back_nodes)
     for key, value in front_nodes.items():
-        try:
-            r = requests.post('http://'+value+':9000', data=back_nodes)
-            logging.warning("POST to Frontend - SUCCESS - Elapsed: {0} ".format(r.elapsed))
+        # reqs = [grequests.post('http://'+value+':9000', data={'1': l[1]}, hooks=dict(response=elapsed)) for l in back_nodes.items()]
 
-        except requests.ConnectionError:
-            logging.warning("POST to Frontend - FAILED")
+        logging.warning("=======================  Start of request bunch  =========================")
+
+        reqplan = [0 if x < 7 else 1 for x in range(0,12)]
+
+        reqs = [grequests.post('http://'+value+':9000', data={'1': back_nodes['{0}'.format(r)]}, hooks=dict(response=elapsed)) for r in reqplan]
+
+        grequests.map(reqs, exception_handler=exception_handler)
+
+        logging.warning("========================  End of request bunch  =========================")
+        time.sleep(3)
+

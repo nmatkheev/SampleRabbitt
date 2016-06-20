@@ -135,7 +135,7 @@ while True:
         break
 
 logpath = logroot+'frontend_{0}-launch{1}.log'.format(current_node_ip, num)
-logging.basicConfig(format='%(asctime)s - %(message)s', filename=logpath, level=logging.WARNING)
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', filename=logpath, level=logging.WARNING)
 
 
 server = ThreadedHTTPServer(('0.0.0.0', 9000), HttpHandler)

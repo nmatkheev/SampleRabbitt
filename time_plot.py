@@ -97,8 +97,6 @@ def client_plot():
                 # label=df['columns'][x])
                 label=str(x))
 
-
-
     # Set the y axis label
     ax.set_ylabel('Время выполнения запроса (ms)')
 
@@ -122,10 +120,14 @@ def client_plot():
 
 
 def frontend_plot():
+    fig, ax = plt.subplots(figsize=(10, 5))
     N = len(frontdata)
     x = range(N)
     width = 1 / 1.5
     plt.bar(x, frontdata, width, color='#F78F1E')
+    ax.set_ylabel('Время выполнения запроса (ms)')
+    ax.set_title('Frontend-узел')
+    plt.grid()
     # fig = plt.gcf()
     plt.show()
 
